@@ -22,3 +22,6 @@ else
 fi
 
 echo "TPM installed successfully!"
+
+# Omarchy themes autochange (tmux powerkit integration)
+curl -fsSL https://raw.githubusercontent.com/joaofelipegalvao/omarchy-tmux/main/scripts/omarchy-tmux-install.sh | bash
