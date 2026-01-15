@@ -121,12 +121,12 @@ start_vpn() {
         info "Opening browser → $found_url"
         xdg-open "$found_url" 2>/dev/null ||
           info "Could not open browser automatically. Please visit: $found_url"
-        break # we found it → can stop searching
       fi
     fi
 
-    # Optional: stop tail early if tunnel is up (heuristic)
-    if [[ "$line" =~ "Established connection" || "$line" =~ "PPP negotiation complete" ]]; then
+    if [[ "$line" =~ "Tunnel is up and running." ]]; then
+      # Tell systemd-resolved to vpn network interface for most lookups
+      sudo resolvectl domain ppp0 ~.
       success "Tunnel appears to be up!"
       break
     fi
@@ -136,7 +136,8 @@ start_vpn() {
   sleep 2
 
   if ! is_running; then
-    error "VPN failed to start\nCheck log: $LOGFILE"
+    error "VPN failed to start
+      Check log: $LOGFILE"
   fi
 
   success "VPN is running. Authenticate in the browser if prompted."
