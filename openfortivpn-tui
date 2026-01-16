@@ -82,6 +82,38 @@ is_running() {
 }
 
 # ────────────────────────────────────────────────────────────────────────────────
+#  Status display
+# ────────────────────────────────────────────────────────────────────────────────
+
+print_status() {
+  echo
+  if is_running; then
+    gum style \
+      --foreground 135 \
+      --border-foreground 135 \
+      --border normal \
+      --width 60 \
+      --align center \
+      --margin "0 2" \
+      "VPN is running" \
+      "pid: $(cat "$PIDFILE" 2>/dev/null || echo '?')" \
+      "" \
+      "You can safely exit this program" \
+      "The VPN connection will continue in the background"
+  else
+    gum style \
+      --foreground 52 \
+      --border-foreground 52 \
+      --border normal \
+      --width 60 \
+      --align center \
+      --margin "0 2" \
+      "VPN is disconnected"
+  fi
+  echo
+}
+
+# ────────────────────────────────────────────────────────────────────────────────
 #  Start VPN + log watching + SAML URL detection
 # ────────────────────────────────────────────────────────────────────────────────
 
@@ -111,7 +143,7 @@ start_vpn() {
   # Watch log in real time and look for SAML URL
   local found_url=""
   tail -f "$LOGFILE" --pid "$(cat "$PIDFILE")" | while IFS= read -r line; do
-    echo "$line"
+    #echo "$line"
 
     # Look for SAML auth prompt
     if [[ -z "$found_url" ]]; then
@@ -119,7 +151,7 @@ start_vpn() {
         found_url="${BASH_REMATCH[1]}"
         info "SAML authentication required!"
         info "Opening browser → $found_url"
-        xdg-open "$found_url" 2>/dev/null ||
+        omarchy-launch-webapp "$found_url" 2>/dev/null ||
           info "Could not open browser automatically. Please visit: $found_url"
       fi
     fi
@@ -127,7 +159,6 @@ start_vpn() {
     if [[ "$line" =~ "Tunnel is up and running." ]]; then
       # Tell systemd-resolved to vpn network interface for most lookups
       sudo resolvectl domain ppp0 ~.
-      success "Tunnel appears to be up!"
       break
     fi
   done &
@@ -139,11 +170,6 @@ start_vpn() {
     error "VPN failed to start
       Check log: $LOGFILE"
   fi
-
-  success "VPN is running. Authenticate in the browser if prompted."
-  info "Press Ctrl+C in this terminal to stop watching log (VPN will continue running)"
-  info "To disconnect:   $0 stop"
-  info "To see full log: $0 log"
 }
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -197,14 +223,10 @@ esac
 load_profiles
 
 while true; do
-  clear # <─── Clear screen at the beginning of each loop
+  clear
   header "OpenFortiVPN SAML"
 
-  if is_running; then
-    gum style --bold --foreground 82 "Status: Connected (pid $(cat "$PIDFILE" 2>/dev/null || echo '?'))"
-  else
-    gum style --bold --foreground 196 "Status: Disconnected"
-  fi
+  print_status
 
   ACTION=$(gum choose \
     --header "Choose action:" \
@@ -212,6 +234,7 @@ while true; do
     "Connect" \
     "Disconnect" \
     "View log" \
+    "Update status" \
     "Exit")
 
   case "$ACTION" in
@@ -238,6 +261,7 @@ while true; do
 
   "Disconnect") stop_vpn ;;
   "View log") show_log ;;
+  "Update status") ;;
   "Exit" | "") exit 0 ;;
   esac
 
