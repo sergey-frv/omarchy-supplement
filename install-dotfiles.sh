@@ -32,6 +32,31 @@ if [ $? -eq 0 ]; then
   stow nvim
   stow starship
   stow git
+
+  # Create backup folder
+  if [ ! -d "backup" ]; then
+    mkdir backup
+  fi
+
+  # Backup waybar configs
+  if [ -d "backup/waybar" ]; then
+    echo "waybar configs backup already exists"
+  else
+    cp -r ~/.config/waybar ./backup/
+  fi
+  rm -rf ~/.config/waybar/config.jsonc ~/.config/waybar/style.css
+  stow waybar
+  omarchy-restart-waybar
+
+  # Backup walker configs
+  if [ -d "backup/walker" ]; then
+    echo "walker configs backup already exists"
+  else
+    cp -r ~/.config/walker ./backup/
+  fi
+  rm -rf ~/.config/walker/config.toml
+  stow walker
+  omarchy-restart-walker
 else
   echo "Failed to clone the repository."
   cd "$ORIGINAL_DIR"
