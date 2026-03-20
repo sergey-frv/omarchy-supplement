@@ -9,6 +9,7 @@
 . ./install-hyprland-overrides.sh
 . ./install-keypassxc.sh
 . ./install-onedrive.sh
+. ./install-yandex-disk.sh
 . ./install-openfortivpn.sh
 . ./install-slack.sh
 . ./install-stow.sh
@@ -16,5 +17,5 @@
 . ./install-telegram.sh
 . ./install-tmux.sh
 . ./install-vi-mongo.sh
-  
+
 . ./install-dotfiles.sh
