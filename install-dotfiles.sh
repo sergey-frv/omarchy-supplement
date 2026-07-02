@@ -32,6 +32,7 @@ if [ $? -eq 0 ]; then
   stow nvim
   stow starship
   stow git
+  stow bash
 
   # Create backup folder
   if [ ! -d "backup" ]; then
