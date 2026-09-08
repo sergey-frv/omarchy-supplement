@@ -34,30 +34,19 @@ if [ $? -eq 0 ]; then
   stow git
   stow bash
 
-  # Create backup folder
-  if [ ! -d "backup" ]; then
-    mkdir backup
-  fi
+  # Omarchy shell plugins (cloned menu with ctrl+j / ctrl+k navigation)
+  mkdir -p ~/.config/omarchy/plugins
+  stow omarchy
 
-  # Backup waybar configs
-  if [ -d "backup/waybar" ]; then
-    echo "waybar configs backup already exists"
-  else
-    cp -r ~/.config/waybar ./backup/
-  fi
-  rm -rf ~/.config/waybar/config.jsonc ~/.config/waybar/style.css
-  stow waybar
-  omarchy-restart-waybar
-
-  # Backup walker configs
-  if [ -d "backup/walker" ]; then
-    echo "walker configs backup already exists"
-  else
-    cp -r ~/.config/walker ./backup/
-  fi
-  rm -rf ~/.config/walker/config.toml
-  stow walker
-  omarchy-restart-walker
+  # Make the shell see the new plugin dir, then switch the menu to the clone
+  omarchy-shell shell rescanPlugins >/dev/null
+  for _ in $(seq 1 40); do
+    if omarchy-plugin-list --json | jq -e 'any(.[]; .id == "sf.menu")' >/dev/null; then
+      break
+    fi
+    sleep 0.05
+  done
+  omarchy plugin enable sf.menu
 else
   echo "Failed to clone the repository."
   cd "$ORIGINAL_DIR"
