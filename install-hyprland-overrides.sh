@@ -2,32 +2,39 @@
 
 set -e
 
-HYPRLAND_CONFIG="$HOME/.config/hypr/hyprland.conf"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OVERRIDES_CONFIG="$SCRIPT_DIR/hyprland-overrides.conf"
-SOURCE_LINE="source = $OVERRIDES_CONFIG"
+hypr_symlink() {
+  local LOCAL_FILE="$1"
 
-# Check if hyprland config exists
-if [ ! -f "$HYPRLAND_CONFIG" ]; then
-    echo "Hyprland config not found at $HYPRLAND_CONFIG"
-    echo "Please install hyprland first"
-    exit 1
-fi
+  # 1. Проверяем, существует ли локальный файл-источник
+  if [ ! -f "$LOCAL_FILE" ]; then
+    echo "Ошибка: Локальный файл '$LOCAL_FILE' не найден."
+    return 1
+  fi
 
-# Check if overrides config exists
-if [ ! -f "$OVERRIDES_CONFIG" ]; then
-    echo "Overrides config not found at $OVERRIDES_CONFIG"
-    exit 1
-fi
+  # Получаем только имя файла (например, input.lua)
+  local FILE_NAME=$(basename "$LOCAL_FILE")
 
-# Check if source line already exists in hyprland.conf
-if grep -Fxq "$SOURCE_LINE" "$HYPRLAND_CONFIG"; then
-    echo "Source line already exists in $HYPRLAND_CONFIG"
-else
-    echo "Adding source line to $HYPRLAND_CONFIG"
-    echo "" >> "$HYPRLAND_CONFIG"
-    echo "$SOURCE_LINE" >> "$HYPRLAND_CONFIG"
-    echo "Source line added successfully"
-fi
+  # Задаем целевой путь в конфигах Hypr
+  local TARGET_DIR="$HOME/.config/hypr"
+  local TARGET_PATH="${TARGET_DIR}/${FILE_NAME}"
 
-echo "Hyprland overrides setup complete!"
+  # 2. Если в ~/.config/hypr/ уже есть файл/ссылка, делаем бэкап
+  if [ -f "$TARGET_PATH" ] || [ -L "$TARGET_PATH" ]; then
+    local TIMESTAMP=$(date +%s)
+    local BACKUP_PATH="${TARGET_PATH}.bak.${TIMESTAMP}"
+
+    # Копируем реальный файл (разворачивая старые ссылки, если они были)
+    cp --remove-destination "$(realpath "$TARGET_PATH")" "$BACKUP_PATH" 2>/dev/null || cp "$TARGET_PATH" "$BACKUP_PATH"
+    echo "Создан бэкап старого конфига: $BACKUP_PATH"
+  fi
+
+  # 3. Создаем целевую директорию, если её нет
+  mkdir -p "$TARGET_DIR"
+
+  # 4. Создаем симлинк (используем абсолютный путь через realpath)
+  ln -sf "$(realpath "$LOCAL_FILE")" "$TARGET_PATH"
+  echo "Симлинк успешно создан: $TARGET_PATH -> $(realpath "$LOCAL_FILE")"
+}
+
+hypr_symlink hyprland-overrides/input.lua
+hypr_symlink hyprland-overrides/bindings.lua
