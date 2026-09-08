@@ -18,4 +18,6 @@
 . ./install-tmux.sh
 . ./install-vi-mongo.sh
 
+. ./install-default-apps.sh
+
 . ./install-dotfiles.sh
