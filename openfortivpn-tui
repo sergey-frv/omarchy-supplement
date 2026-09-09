@@ -56,7 +56,7 @@ info() { gum style --foreground 39 "$*"; }
 load_profiles() {
   [[ -f "$CONFIG" ]] || error "Config not found:
   Create $CONFIG
-  Format: name | host:port | [extra args]"
+  Format: name | host:port[/realm] | [extra args]"
 
   mapfile -t lines < <(grep -vE '^\s*(#|$)' "$CONFIG" | sed 's/[[:space:]]*|[[:space:]]*/|/g')
 
@@ -118,8 +118,11 @@ print_status() {
 # ────────────────────────────────────────────────────────────────────────────────
 
 start_vpn() {
-  local host_port extra cmd
-  host_port="$1"
+  local host_port realm extra cmd
+  # Config may contain host:port/realm — split off the realm part
+  host_port="${1%%/*}"
+  realm="${1#"$host_port"}"
+  realm="${realm#/}"
   extra="${2:-}"
 
   # ── Early sudo check / prompt ─────────────────────────────────────────────
@@ -128,9 +131,11 @@ start_vpn() {
     error "sudo authentication failed — cannot continue"
   fi
 
-  cmd=("$OFP" "$host_port" --saml-login $extra)
+  cmd=("$OFP" "$host_port" --saml-login)
+  [[ -n "$realm" ]] && cmd+=("--realm=$realm")
+  cmd+=($extra)
 
-  gum style --foreground 212 "Connecting to $host_port"
+  gum style --foreground 212 "Connecting to $host_port${realm:+ (realm: $realm)}"
 
   # Start openfortivpn in background, redirect output to log
   sudo "${cmd[@]}" >"$LOGFILE" 2>&1 &
