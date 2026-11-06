@@ -27,12 +27,19 @@ if [ $? -eq 0 ]; then
   echo "removing old configs"
   rm -rf ~/.config/nvim ~/.config/starship.toml ~/.local/share/nvim/ ~/.cache/nvim/ ~/.config/git/
 
+  # A local CLAUDE.md is kept as a backup; ~/.claude must exist so stow links the file, not the whole directory
+  mkdir -p ~/.claude
+  if [ -f ~/.claude/CLAUDE.md ] && [ ! -L ~/.claude/CLAUDE.md ]; then
+    mv ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak.$(date +%s)
+  fi
+
   cd "$REPO_NAME"
   stow tmux
   stow nvim
   stow starship
   stow git
   stow bash
+  stow --no-folding claude
 else
   echo "Failed to clone the repository."
   cd "$ORIGINAL_DIR"
