@@ -63,7 +63,12 @@ hl.unbind("SUPER + K")
 hl.unbind("SUPER + l")
 
 hl.unbind("SUPER + L")
-o.bind("SUPER + A", "Toggle workspace layout", "exec omarchy-hyprland-workspace-layout-toggle")
+
+-- Раскладка workspace: стоковые Super+L / Super+Alt+L заняты vim-навигацией и группами, перенесены на Super+;
+-- (code:47 — клавиша справа от L, в ru «ж»)
+hl.unbind("SUPER + ALT + L")
+o.bind("SUPER + code:47", "Cycle workspace layout", "omarchy-hyprland-workspace-layout-toggle")
+o.bind("SUPER + SHIFT + code:47", "Cycle workspace layout back", "omarchy-hyprland-workspace-layout-toggle back")
 
 -- Control tiling
 hl.unbind("SUPER + code:48")
@@ -101,3 +106,57 @@ o.bind("SUPER + ALT + j", "Move window to group on bottom", hl.dsp.window.move({
 -- Window navigation for grouped windows - no need for this binding, defaults are hardware and lock
 -- o.bind("SUPER + CTRL + h", "Move grouped window focus left", hl.dsp.group.prev())
 -- o.bind("SUPER + CTRL + l", "Move grouped window focus right", hl.dsp.group.next())
+
+------ Universal clipboard в любой раскладке
+-- Стоковые Super+C/V/X/A (default/hypr/bindings/clipboard.lua) передают send_key_state имя клавиши ("C"), и Hyprland
+-- ищет его в текущей раскладке: в ru латинских букв нет, вызов падает с "send_key_state: key not found".
+-- Здесь те же бинды передают скан-код физической клавиши, он от раскладки не зависит.
+do
+	local KEY_C = "code:54"
+	local KEY_V = "code:55"
+	local KEY_X = "code:53"
+	local KEY_A = "code:38"
+
+	-- Нажатие и отпускание разнесены таймером, как в стоковом clipboard.lua
+	-- (обход залипания синтетических клавиш: https://github.com/hyprwm/Hyprland/discussions/14099).
+	local function send_shortcut_once(mods, key)
+		return function()
+			hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
+
+			hl.timer(function()
+				hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
+			end, { timeout = 50, type = "oneshot" })
+		end
+	end
+
+	-- Терминал определяется по тегу terminal из default/hypr/apps/terminals.lua; у динамических тегов в конце "*".
+	local function active_window_is_terminal()
+		local window = hl.get_active_window()
+		if not window then
+			return false
+		end
+
+		for _, tag in ipairs(window.tags or {}) do
+			if tag:gsub("%*$", "") == "terminal" then
+				return true
+			end
+		end
+
+		return false
+	end
+
+	local function universal_clipboard_shortcut(default_mods, default_key, terminal_mods, terminal_key)
+		return function()
+			if active_window_is_terminal() then
+				send_shortcut_once(terminal_mods, terminal_key)()
+			else
+				send_shortcut_once(default_mods, default_key)()
+			end
+		end
+	end
+
+	o.rebind("SUPER + C", "Universal copy", universal_clipboard_shortcut("CTRL", KEY_C, "CTRL SHIFT", KEY_C))
+	o.rebind("SUPER + V", "Universal paste", universal_clipboard_shortcut("CTRL", KEY_V, "CTRL SHIFT", KEY_V))
+	o.rebind("SUPER + X", "Universal cut", send_shortcut_once("CTRL", KEY_X))
+	o.rebind("SUPER + A", "Select all", send_shortcut_once("CTRL", KEY_A))
+end
