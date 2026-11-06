@@ -15,6 +15,7 @@
 . ./install-stow.sh
 . ./install-talk.sh
 . ./install-telegram.sh
+. ./install-time-web.sh
 . ./install-tmux.sh
 . ./install-vi-mongo.sh
 

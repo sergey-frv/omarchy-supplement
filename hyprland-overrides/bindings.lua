@@ -46,11 +46,11 @@ o.bind("SUPER + SHIFT + M", "Music", 'exec omarchy-launch-or-focus-webapp "Music
 -- Telegram
 o.bind("SUPER + SHIFT + CTRL + T", "Telegram", 'exec omarchy-launch-or-focus ^telegram$ "uwsm-app -- Telegram"')
 
--- Time
+-- Time (web app "Time Web"; окно ищется по классу chrome-sravni.time-messenger.ru__-Default)
 o.bind(
 	"SUPER + SHIFT + CTRL + ALT + T",
-	"Time Desktop",
-	'exec omarchy-launch-or-focus ^time$ "uwsm-app -- Time Desktop"'
+	"Time Web",
+	'exec omarchy-launch-or-focus-webapp "sravni.time-messenger" "https://sravni.time-messenger.ru/"'
 )
 
 ------ Vim navigation
