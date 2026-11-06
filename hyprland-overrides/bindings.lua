@@ -160,3 +160,86 @@ do
 	o.rebind("SUPER + X", "Universal cut", send_shortcut_once("CTRL", KEY_X))
 	o.rebind("SUPER + A", "Select all", send_shortcut_once("CTRL", KEY_A))
 end
+
+------ Ctrl+hjkl / Ctrl+n,p в меню omarchy-shell
+-- Пока открыт слой одного из меню из LAYERS, включён submap omarchy-vim-nav: Ctrl+H/J/K/L и Ctrl+N/P
+-- шлют в меню стрелки. В карусели выбора темы и фона Ctrl+J/N листают вперёд, Ctrl+K/P назад.
+-- Клавиши заданы скан-кодами, поэтому работают в любой раскладке. Остальные клавиши, в том числе
+-- набор текста в поиск, submap пропускает в меню.
+-- Если бинд сработал, а открытого меню нет (событие закрытия потерялось), submap выключается,
+-- а нажатие уходит окну как обычный Ctrl+клавиша.
+do
+	local SUBMAP = "omarchy-vim-nav"
+
+	local LIST = { left = "Left", down = "Down", up = "Up", right = "Right" }
+	local CAROUSEL = { left = "Left", down = "Right", up = "Left", right = "Right" }
+
+	local LAYERS = {
+		["omarchy-menu"] = LIST, -- меню Omarchy, Super+Space
+		["omarchy-clipboard"] = LIST, -- история буфера обмена
+		["omarchy-emojis"] = LIST, -- эмодзи, Super+Ctrl+E
+		["omarchy-dock-apps"] = LIST, -- сетка приложений, Super+Alt+Space
+		["omarchy-image-selector"] = CAROUSEL, -- выбор темы и фона
+	}
+
+	-- Открытое меню: слой из LAYERS, который держит фокус клавиатуры. skip исключает закрывающийся слой.
+	local function open_menu(skip)
+		for _, layer in ipairs(hl.get_layers()) do
+			if
+				LAYERS[layer.namespace]
+				and layer.mapped
+				and layer.interactivity ~= 0
+				and (not skip or layer.address ~= skip.address)
+			then
+				return layer
+			end
+		end
+	end
+
+	local function send_key(mods, key)
+		hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
+
+		hl.timer(function()
+			hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
+		end, { timeout = 50, type = "oneshot" })
+	end
+
+	local function navigate(direction, key)
+		return function()
+			local menu = open_menu()
+			if menu then
+				send_key("", LAYERS[menu.namespace][direction])
+			else
+				hl.dispatch(hl.dsp.submap("reset"))
+				send_key("CTRL", key)
+			end
+		end
+	end
+
+	local KEYS = {
+		{ key = "code:43", direction = "left" }, -- H
+		{ key = "code:44", direction = "down" }, -- J
+		{ key = "code:45", direction = "up" }, -- K
+		{ key = "code:46", direction = "right" }, -- L
+		{ key = "code:57", direction = "down" }, -- N
+		{ key = "code:33", direction = "up" }, -- P
+	}
+
+	hl.define_submap(SUBMAP, function()
+		for _, k in ipairs(KEYS) do
+			hl.bind("CTRL + " .. k.key, navigate(k.direction, k.key))
+		end
+	end)
+
+	hl.on("layer.opened", function(layer)
+		if layer and LAYERS[layer.namespace] then
+			hl.dispatch(hl.dsp.submap(SUBMAP))
+		end
+	end)
+
+	hl.on("layer.closed", function(layer)
+		if layer and LAYERS[layer.namespace] and hl.get_current_submap() == SUBMAP and not open_menu(layer) then
+			hl.dispatch(hl.dsp.submap("reset"))
+		end
+	end)
+end
