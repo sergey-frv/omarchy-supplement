@@ -7,6 +7,7 @@
 . ./install-firefox.sh
 . ./install-ghostty.sh
 . ./install-hyprland-overrides.sh
+bash ./install-omarchy-menu-vim-keys.sh
 . ./install-keypassxc.sh
 . ./install-onedrive.sh
 . ./install-yandex-disk.sh
