@@ -53,6 +53,46 @@ o.bind(
 	'exec omarchy-launch-or-focus-webapp "sravni.time-messenger" "https://sravni.time-messenger.ru/"'
 )
 
+------ Глобальные workspaces
+-- Номера workspace общие для всех мониторов, как до Omarchy 4.5 (omacom/omarchy#15655 дал каждому монитору свои 1-10).
+-- Пустой reconcile выключает перенумерацию workspace в блоки мониторов при reload и hotplug. Без файла
+-- ~/.local/state/omarchy/monitor-workspaces панель показывает на каждом мониторе workspaces 1-10.
+-- Клик по номеру на панели вызывает o.workspaces.focus(slot, monitor): он фокусирует workspace там, где тот открыт.
+do
+	o.workspaces.reconcile = function() end
+	o.workspaces.focus = function(slot)
+		return hl.dsp.focus({ workspace = tostring(slot) })
+	end
+	os.remove(os.getenv("HOME") .. "/.local/state/omarchy/monitor-workspaces")
+	os.remove(os.getenv("HOME") .. "/.local/state/omarchy/monitor-workspaces-merged")
+
+	for workspace = 1, 10 do
+		local key = "code:" .. tostring(workspace + 9)
+		local id = tostring(workspace)
+		o.rebind("SUPER + " .. key, "Switch to workspace " .. workspace, hl.dsp.focus({ workspace = id }))
+		o.rebind("SUPER + SHIFT + " .. key, "Move window to workspace " .. workspace, hl.dsp.window.move({ workspace = id }))
+		o.rebind(
+			"SUPER + SHIFT + ALT + " .. key,
+			"Move window silently to workspace " .. workspace,
+			hl.dsp.window.move({ workspace = id, follow = false })
+		)
+	end
+
+	o.rebind("SUPER + TAB", "Next workspace", hl.dsp.focus({ workspace = "e+1" }))
+	o.rebind("SUPER + SHIFT + TAB", "Previous workspace", hl.dsp.focus({ workspace = "e-1" }))
+	o.rebind("SUPER + CTRL + TAB", "Former workspace", hl.dsp.focus({ workspace = "previous" }))
+	o.rebind("SUPER + mouse_down", "Scroll active workspace forward", hl.dsp.focus({ workspace = "e+1" }))
+	o.rebind("SUPER + mouse_up", "Scroll active workspace backward", hl.dsp.focus({ workspace = "e-1" }))
+
+	for _, move in ipairs({ { "LEFT", "l" }, { "RIGHT", "r" }, { "UP", "u" }, { "DOWN", "d" } }) do
+		o.rebind(
+			"SUPER + SHIFT + ALT + " .. move[1],
+			"Move workspace to " .. move[1]:lower() .. " monitor",
+			hl.dsp.workspace.move({ monitor = move[2] })
+		)
+	end
+end
+
 ------ Vim navigation
 -- Unbind vim hjkl
 hl.unbind("SUPER + h")
