@@ -33,6 +33,13 @@ if [ $? -eq 0 ]; then
     mv ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak.$(date +%s)
   fi
 
+  # Omarchy's herdr config is kept as a backup; ~/.config/herdr also holds sockets, logs and plugins,
+  # so stow links config.toml only
+  mkdir -p ~/.config/herdr
+  if [ -f ~/.config/herdr/config.toml ] && [ ! -L ~/.config/herdr/config.toml ]; then
+    mv ~/.config/herdr/config.toml ~/.config/herdr/config.toml.bak.$(date +%s)
+  fi
+
   cd "$REPO_NAME"
   stow tmux
   stow nvim
@@ -40,6 +47,12 @@ if [ $? -eq 0 ]; then
   stow git
   stow bash
   stow --no-folding claude
+  stow --no-folding herdr
+
+  # Ctrl+h/j/k/l across herdr panes and Neovim splits; the version matches the nvim plugin spec
+  if command -v herdr &>/dev/null && ! herdr plugin list 2>/dev/null | grep -q "vim-herdr-navigation"; then
+    herdr plugin install paulbkim-dev/vim-herdr-navigation --ref 7873100eb47212269005c693effb2a844986b30f
+  fi
 else
   echo "Failed to clone the repository."
   cd "$ORIGINAL_DIR"
